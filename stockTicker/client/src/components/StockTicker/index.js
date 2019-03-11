@@ -1,6 +1,8 @@
-import React from 'react';
+import React from 'react'
 import axios from 'axios'
 import './tickerBoard.css'
+
+import API_KEY from '../../api'
 
 
 class StockTicker extends React.Component {
@@ -12,24 +14,46 @@ class StockTicker extends React.Component {
       stocks: [],
     }
   }
+
   componentDidMount(){
-    this.state.companies.map( company => {
-      return this.fetchStocks(company)
-    })
+
+    // Create an array of endpoints (one for each company)
+    let promises = this.state.companies.map(company => axios.get(`https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${company}&interval=5min&apikey=${API_KEY}`));
+
+    this.fetchStocks(promises);
   }
 
-  fetchStocks = (company) => { 
-    axios.get(`https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${company}&interval=5min&apikey=MRYZL6KHH9MMJYIF`)
-      .then( response => {
-        const data = response.data['Time Series (5min)']
-        const timeStamps = Object.keys(data)
-        const current = data[timeStamps[0]]
-          console.log('current', current)
-        this.setState({
-          timeStamp: this.state.stocks.push(current) // The most recent ticker info after 5 mins passed
-        })
+  fetchStocks = (promises) => { 
+    // Run all network requests simultaneously
+    axios
+      .all(promises)
+      .then(results => {
+        // Since we don't necessarily know how many results are coming back, we can't use axios.spread(). Let's loop over the results array
+        results.forEach(result => {
+          /* If the API is being hit too frequent, the response is as follows:
+          *
+          * {
+          *   "Note": "Thank you for using Alpha Vantage! Our standard API call frequency is 5 calls per minute and 500 calls per day. 
+          *            Please visit https://www.alphavantage.co/premium/ if you would like to target a higher API call frequency."
+          * }
+          *
+          * So let's throw an error if we see the note
+          */
+          if (result.data.Note) {
+            throw new Error();
+          }
+
+          let data = result.data['Time Series (5min)'];
+          let timeStamps = Object.keys(data);
+          let current = data[timeStamps[0]];
+          console.log(current);
+
+          // You probably don't want to update state within a loop, since it will cause a render for each one. It might be better to build your data within the loop and then update state once after the loop.
+        });
       })
-      .catch(() => {console.log( "we've encountered an error")})
+      .catch(error => {
+        console.error('There was an error with the network requests', error)
+      });
   }
 
   change = (close, start) => {
@@ -46,15 +70,15 @@ class StockTicker extends React.Component {
     }
 
     const dow = this.state.stocks[0] 
-    const nasdaq = this.state.stocks[1]
+    // const nasdaq = this.state.stocks[1]
     const open = '1. open'
     const high = '2. high'
     const low = '3. low'
     const close = '4. close'
 
     console.log(this.state.stocks)
-    console.log(this.state.stocks[0]['1. open']) // <---------THIS WORKS AND RETURNS THE VALUE
-    console.log(this.state.stocks[1]) //<-----------THIS RETURNS THE ARRAY OBJECT WITH VALUES
+    // console.log(this.state.stocks[0]['1. open']) // <---------THIS WORKS AND RETURNS THE VALUE
+    // console.log(this.state.stocks[1]) //<-----------THIS RETURNS THE ARRAY OBJECT WITH VALUES
 
     return (
       <div>  

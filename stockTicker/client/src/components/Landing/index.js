@@ -4,9 +4,6 @@ import StockTicker from '../StockTicker/index.js'
 
 
 class Landing extends React.Component {
-  constructor(){
-  super();
-    }
     
     render(){
         return(

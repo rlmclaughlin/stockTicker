@@ -27,9 +27,6 @@ const MenuDrawer = styled.div`
 `
 
 class Navigation extends React.Component {
-  constructor(){
-    super();
-  }
 
   render(){
     return(
