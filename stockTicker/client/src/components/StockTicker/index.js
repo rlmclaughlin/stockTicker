@@ -10,13 +10,12 @@ class StockTicker extends React.Component {
     super(props)
     this.state = {
       timeStamp: {},
-      companies: ['DJI', 'NDAQ', 'SPX'],
+      companies: ['DJI', 'NDAQ', 'SPX', 'AAPL'],
       stocks: [],
     }
   }
 
   componentDidMount(){
-
     // Create an array of endpoints (one for each company)
     let promises = this.state.companies.map(company => axios.get(`https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${company}&interval=5min&apikey=${API_KEY}`));
 
@@ -24,6 +23,9 @@ class StockTicker extends React.Component {
   }
 
   fetchStocks = (promises) => { 
+    let stocks = [];
+    let timeStamp;
+
     // Run all network requests simultaneously
     axios
       .all(promises)
@@ -46,9 +48,20 @@ class StockTicker extends React.Component {
           let data = result.data['Time Series (5min)'];
           let timeStamps = Object.keys(data);
           let current = data[timeStamps[0]];
-          console.log(current);
+          timeStamp = timeStamps[0];
+
+          stocks.push({
+            company: result.data['Meta Data']['2. Symbol'],
+            values: current
+          })
 
           // You probably don't want to update state within a loop, since it will cause a render for each one. It might be better to build your data within the loop and then update state once after the loop.
+        });
+
+        // Update state outside loop
+        this.setState({
+          stocks,
+          timeStamp
         });
       })
       .catch(error => {
@@ -57,28 +70,38 @@ class StockTicker extends React.Component {
   }
 
   change = (close, start) => {
-    let deduct = close - start
-    let divide = deduct / start
-    let solution = divide * 100
-      return solution.toFixed(3)
+    let deduct = close - start;
+    let divide = deduct / start;
+    let solution = divide * 100;
+    return solution.toFixed(3);
   }
 
-  render() { 
-    const {timeStamp} = this.state
-       if(!Object.keys(timeStamp).length && !this.state.stocks.length) {
-        return <div>Loading...</div>
+  render() {
+    if(!this.state.stocks.length) {
+      return <div>Loading...</div>
     }
 
-    const dow = this.state.stocks[0] 
-    // const nasdaq = this.state.stocks[1]
-    const open = '1. open'
-    const high = '2. high'
-    const low = '3. low'
-    const close = '4. close'
+    let rows = [];
 
-    console.log(this.state.stocks)
-    // console.log(this.state.stocks[0]['1. open']) // <---------THIS WORKS AND RETURNS THE VALUE
-    // console.log(this.state.stocks[1]) //<-----------THIS RETURNS THE ARRAY OBJECT WITH VALUES
+    const open = '1. open';
+    const high = '2. high';
+    const low = '3. low';
+    const close = '4. close';
+
+    // Instead of defining your data manually line by line, we can simply loop over the data and build the interface programmatically
+    this.state.stocks.forEach( stock => {
+      console.log(stock)
+      rows.push(
+        <tr>
+          <td>{ stock.company }</td>
+          <td>{ stock.values[open] }</td>
+          <td>{ stock.values[high] }</td>
+          <td>{ stock.values[low] }</td>
+          <td>{ stock.values[close] }</td>
+          <td>{ `${this.change(stock.values[close], stock.values[open])}%` }</td>
+        </tr>
+      )
+    });
 
     return (
       <div>  
@@ -95,54 +118,7 @@ class StockTicker extends React.Component {
 		        </tr>
 	        </thead>
 	        <tbody>
-		        <tr>
-		        	<td>Dow</td>
-		        	<td>{dow[open]}</td>
-		        	<td>{dow[high]}</td>
-		        	<td>{dow[low]}</td>
-              <td>{dow[close]}</td>
-              <td>{this.change(dow[close], dow[open])} %</td>
-		        </tr>
-		        <tr>
-		        	<td>Nasdaq</td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>  
-		        </tr>
-		        <tr>
-		        	<td>S&P</td>
-		        	<td>4162</td>
-		        	<td>5327</td>
-		        	<td>00:2</td>
-              <td></td>
-              <td></td>
-		        </tr>
-            <tr>
-		        	<td>Apple</td>
-		        	<td>3654</td>
-		        	<td>2961</td>
-		        	<td>00:12:10</td>
-              <td></td>
-              <td></td>
-		        </tr>
-            <tr>
-		        	<td>Amazon</td>
-		        	<td>2002</td>
-		        	<td>4135</td>
-		        	<td>00:46:19</td>
-              <td></td>
-              <td></td>
-		        </tr>
-            <tr>
-		        	<td>Facebook</td>
-		        	<td>4623</td>
-		        	<td>3486</td>
-		        	<td>00:31:52</td>
-              <td></td>
-              <td></td>
-		        </tr>
+		        { rows }
 	        </tbody>
         </table>
       </div> 
