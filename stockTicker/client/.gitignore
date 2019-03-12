@@ -60,3 +60,7 @@ yarn-error.log*
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# API keys #
+############
+api.js
